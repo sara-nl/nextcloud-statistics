@@ -1,0 +1,11 @@
+{
+	"name": "samditmeijer/stats_collector",
+	"description": "Nextcloud stats collection and forwarding",
+	"type": "project",
+	"license": "AGPL-3.0-or-later",
+	"autoload": {
+		"psr-4": {
+			"OCA\\StatsCollector\\": "lib/"
+		}
+	}
+}

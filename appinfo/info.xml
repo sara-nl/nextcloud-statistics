@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>stats_collector</id>
+	<name>Stats Collector</name>
+	<summary>Collect Nextcloud statistics for external monitoring systems</summary>
+	<description><![CDATA[A modular Nextcloud app that collects statistics from installed apps via DB queries and OCS APIs. External monitoring systems can pull snapshots through a public REST API authenticated with API keys. Provides an admin dashboard and a per-group personal dashboard.]]></description>
+	<version>2.4.1</version>
+	<licence>agpl</licence>
+	<author>Sam Ditmeijer</author>
+	<namespace>StatsCollector</namespace>
+	<category>monitoring</category>
+
+	<dependencies>
+		<php min-version="8.1"/>
+		<nextcloud min-version="30" max-version="33"/>
+	</dependencies>
+
+	<background-jobs>
+		<job>OCA\StatsCollector\BackgroundJob\CollectAndForwardJob</job>
+	</background-jobs>
+
+	<commands>
+		<command>OCA\StatsCollector\Command\Configure</command>
+		<command>OCA\StatsCollector\Command\Collect</command>
+		<command>OCA\StatsCollector\Command\Status</command>
+		<command>OCA\StatsCollector\Command\Metrics</command>
+		<command>OCA\StatsCollector\Command\Setup</command>
+		<command>OCA\StatsCollector\Command\Reset</command>
+		<command>OCA\StatsCollector\Command\ApiKey</command>
+	</commands>
+
+	<settings>
+		<admin>OCA\StatsCollector\Settings\AdminSettings</admin>
+		<admin-section>OCA\StatsCollector\Settings\AdminSection</admin-section>
+	</settings>
+
+</info>

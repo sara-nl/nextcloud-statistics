@@ -1,0 +1,23 @@
+node_modules/
+js/
+.DS_Store
+.cache/
+
+# Build artefacts
+*.log
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# Local Claude / planning state — never commit
+CLAUDE.md
+PRODUCT.md
+DESIGN.md
+.claude/
+.agents/
+plans/
+
+# Local deploy helpers (contain personal hostnames / IPs)
+deploy.sh
+DEPLOY.md

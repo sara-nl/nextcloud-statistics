@@ -1,0 +1,231 @@
+#stats-collector-admin {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 20px 40px;
+}
+
+/* Personal dashboard mount-point: full-width app shell. NcContent / NcAppContent
+   manage their own width, so the wrapper element must NOT constrain them.
+   FormVox uses the equivalent of: height 100%, flex column. */
+#stats-collector-personal {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+#stats-collector-admin .section-header,
+#stats-collector-personal .section-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+#stats-collector-admin .section-header h2,
+#stats-collector-personal .section-header h2 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+#stats-collector-admin .settings-section,
+#stats-collector-personal .settings-section {
+	margin-bottom: 32px;
+	padding: 20px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+}
+
+#stats-collector-admin .collector-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+#stats-collector-admin .collector-card {
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	padding: 16px;
+}
+
+#stats-collector-admin .collector-card.unavailable {
+	opacity: 0.5;
+}
+
+#stats-collector-admin .collector-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: pointer;
+}
+
+#stats-collector-admin .collector-info {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+#stats-collector-admin .collector-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#stats-collector-admin .badge {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+}
+
+#stats-collector-admin .metrics-list {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+}
+
+#stats-collector-admin .metric-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 0;
+}
+
+#stats-collector-admin .metric-description {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	margin-left: 28px;
+}
+
+#stats-collector-admin .preview-container {
+	background: var(--color-background-dark);
+	border-radius: var(--border-radius);
+	padding: 16px;
+	overflow-x: auto;
+}
+
+#stats-collector-admin .preview-container pre {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+#stats-collector-admin .history-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+#stats-collector-admin .history-table th,
+#stats-collector-admin .history-table td {
+	padding: 8px 12px;
+	text-align: left;
+	border-bottom: 1px solid var(--color-border);
+}
+
+#stats-collector-admin .history-table th {
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+#stats-collector-admin .status-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: var(--border-radius-pill);
+	font-size: 12px;
+	font-weight: 500;
+}
+
+#stats-collector-admin .status-badge.success {
+	background: var(--color-success);
+	color: white;
+}
+
+#stats-collector-admin .status-badge.failed,
+#stats-collector-admin .status-badge.error {
+	background: var(--color-error);
+	color: white;
+}
+
+#stats-collector-admin .status-badge.pending {
+	background: var(--color-warning);
+	color: white;
+}
+
+#stats-collector-admin .btn,
+#stats-collector-personal .btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 16px;
+	border: 2px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill);
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	transition: background 0.15s, border-color 0.15s;
+}
+
+#stats-collector-admin .btn:hover,
+#stats-collector-personal .btn:hover {
+	background: var(--color-background-hover);
+}
+
+#stats-collector-admin .btn:disabled,
+#stats-collector-personal .btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+#stats-collector-admin .btn-primary {
+	background: var(--color-primary);
+	color: var(--color-primary-text);
+	border-color: var(--color-primary);
+}
+
+#stats-collector-admin .btn-primary:hover {
+	background: var(--color-primary-hover);
+}
+
+#stats-collector-admin .btn-tertiary,
+#stats-collector-personal .btn-tertiary {
+	border-color: transparent;
+	background: transparent;
+	color: var(--color-primary);
+}
+
+#stats-collector-admin .btn-tertiary:hover,
+#stats-collector-personal .btn-tertiary:hover {
+	background: var(--color-background-hover);
+}
+
+#stats-collector-admin .button-row {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+#stats-collector-admin .form-group {
+	margin-bottom: 16px;
+}
+
+#stats-collector-admin .form-group label {
+	display: block;
+	font-weight: 500;
+	margin-bottom: 4px;
+}
+
+#stats-collector-admin .form-group input[type="text"],
+#stats-collector-admin .form-group input[type="url"],
+#stats-collector-admin .form-group input[type="password"],
+#stats-collector-admin .form-group select {
+	width: 100%;
+	max-width: 500px;
+}
