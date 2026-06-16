@@ -39,10 +39,17 @@ class SnapshotService {
 
 	/**
 	 * Create a new API key. Returns the plaintext key once — never retrievable again.
+	 * Pass a non-empty $plainKey to register an externally-generated key (e.g. from
+	 * Vault). Must be 32+ chars to avoid weak tokens.
 	 */
-	public function createApiKey(string $label): array {
+	public function createApiKey(string $label, string $plainKey = ''): array {
 		$keys = $this->getApiKeys();
-		$plainKey = bin2hex(random_bytes(32));
+
+		if ($plainKey === '') {
+			$plainKey = bin2hex(random_bytes(32));
+		} elseif (strlen($plainKey) < 32) {
+			throw new \InvalidArgumentException('API key must be at least 32 characters');
+		}
 
 		$keyRecord = [
 			'id' => 'key_' . bin2hex(random_bytes(8)),

@@ -30,6 +30,7 @@ class ApiKey extends Command {
 			->addArgument('action', InputArgument::REQUIRED, 'One of: create, list, revoke')
 			->addOption('label', null, InputOption::VALUE_REQUIRED, 'Human-readable label (required for "create" and "revoke")')
 			->addOption('id', null, InputOption::VALUE_REQUIRED, 'Key id (alternative to --label for "revoke")')
+			->addOption('key', null, InputOption::VALUE_REQUIRED, 'On "create", register this exact plaintext key (32+ chars). Omit to let the server generate one.')
 			->addOption('quiet-key', null, InputOption::VALUE_NONE, 'On "create", print only the plaintext key (for scripting)');
 	}
 
@@ -56,7 +57,13 @@ class ApiKey extends Command {
 			}
 		}
 
-		$record = $this->snapshotService->createApiKey($label);
+		$providedKey = (string)$input->getOption('key');
+
+		try {
+			$record = $this->snapshotService->createApiKey($label, $providedKey);
+		} catch (\InvalidArgumentException $e) {
+			return $this->fail($output, $e->getMessage());
+		}
 		$plain = (string)($record['key'] ?? '');
 
 		if ($input->getOption('quiet-key')) {
@@ -69,7 +76,11 @@ class ApiKey extends Command {
 		$output->writeln("Id    : " . $record['id']);
 		$output->writeln("Key   : <comment>$plain</comment>");
 		$output->writeln('');
-		$output->writeln('<comment>Copy this key now. It is hashed at rest and cannot be recovered.</comment>');
+		if ($providedKey === '') {
+			$output->writeln('<comment>Copy this key now. It is hashed at rest and cannot be recovered.</comment>');
+		} else {
+			$output->writeln('<comment>Stored. The plaintext is only stored encrypted; this output is the key you provided.</comment>');
+		}
 		return 0;
 	}
 

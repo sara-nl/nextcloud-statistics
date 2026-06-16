@@ -97,27 +97,33 @@ $OCC stats_collector:collect --preview | head -40
 
 ### Creating API keys non-interactively
 
-API keys are generated server-side with `random_bytes(32)` and the plaintext is returned exactly once. Pipe `--quiet-key` straight into your secret store:
+API keys are stored encrypted at rest and the plaintext is returned exactly once. By default the server generates a fresh 64-char hex key (`random_bytes(32)`); pass `--key=` to register a key you already minted yourself (Vault, KMS, password manager). Either way `--quiet-key` writes only the plaintext to stdout for piping.
+
+Pick any label that helps you identify the consumer (the monitoring system, dashboard, or person using it). The label is purely cosmetic — it does not gate anything.
 
 ```bash
 OCC="sudo -u www-data php /var/www/nextcloud/occ"
 
-# Create — returns ONLY the plaintext key on stdout, ready to pipe
-NEW_KEY=$($OCC stats_collector:api-key create --label="prometheus-prd" --quiet-key)
+# 1. Let the server mint a key (recommended — strong by construction)
+NEW_KEY=$($OCC stats_collector:api-key create --label="your-label" --quiet-key)
 echo "$NEW_KEY" | vault kv put secret/monitoring/nc-statscollector key=-
 
-# Or human-friendly output (full info, key shown once)
-$OCC stats_collector:api-key create --label="grafana"
+# 2. Or register your own pre-generated key (must be 32+ chars)
+MY_KEY=$(openssl rand -hex 32)
+$OCC stats_collector:api-key create --label="your-label" --key="$MY_KEY"
 
-# List existing keys (preview prefix only)
+# Human-friendly output (full record, key shown once)
+$OCC stats_collector:api-key create --label="your-label"
+
+# List existing keys (only the prefix is stored unencrypted)
 $OCC stats_collector:api-key list
 
 # Revoke by label or by id
-$OCC stats_collector:api-key revoke --label="grafana"
+$OCC stats_collector:api-key revoke --label="your-label"
 $OCC stats_collector:api-key revoke --id="key_abc123..."
 ```
 
-Labels must be unique. Create is idempotent at the label level: re-running with the same label exits with an error rather than silently issuing a duplicate.
+Labels must be unique. `create` exits non-zero if the label already exists rather than silently issuing a duplicate — pair it with `revoke --label=...` first if you want to rotate.
 
 ### Choosing metrics
 
@@ -196,7 +202,7 @@ This pattern (`disable-all` then `enable=<exact ids>`) is the safest way to keep
 - name: Mint API key
   command: >
     php /var/www/nextcloud/occ stats_collector:api-key create
-      --label="{{ statscollector_api_key_label | default('prometheus') }}"
+      --label="{{ statscollector_api_key_label | default('your-label') }}"
       --quiet-key
   become_user: www-data
   register: sc_apikey
@@ -239,7 +245,10 @@ spec:
               php occ app:enable stats_collector
               php occ stats_collector:configure --cron-interval=hourly --instance-label="$HOSTNAME"
               php occ stats_collector:metrics --enable-all-collectors
-              php occ stats_collector:configure --add-api-key="$SC_API_KEY" --api-key-label="prometheus"
+              # Register the key from the k8s Secret. Idempotent guard so re-runs
+              # of the Job don't fail on the duplicate-label check.
+              php occ stats_collector:api-key list | grep -q your-label \
+                || php occ stats_collector:api-key create --label="your-label" --key="$SC_API_KEY"
           env:
             - name: SC_API_KEY
               valueFrom:
