@@ -182,6 +182,40 @@ A typical Ansible task to pin an exact metric set across a fleet:
 
 This pattern (`disable-all` then `enable=<exact ids>`) is the safest way to keep config reproducible: it converges to the declared set regardless of prior state.
 
+### Granting personal dashboard access
+
+The personal dashboard (see [Two surfaces](#two-surfaces-admin-settings-vs-personal-dashboard)) is gated by group membership. Admins always see it; everyone else needs to be in one of the allowed groups. Manage the allowlist via **Admin settings -> Stats Collector -> Access** or non-interactively via `occ`:
+
+```bash
+OCC="sudo -u www-data php /var/www/nextcloud/occ"
+
+# Show current allowlist + per-group member counts
+$OCC stats_collector:groups list
+
+# Replace the whole allowlist (recommended for declarative config)
+$OCC stats_collector:groups set admin monitoring
+
+# Incrementally add or remove
+$OCC stats_collector:groups add data-team
+$OCC stats_collector:groups remove monitoring
+
+# Wipe the allowlist (only admins will see the dashboard)
+$OCC stats_collector:groups clear
+```
+
+Group ids are space- or comma-separated. Unknown ids are rejected by default so typos fail loudly; pass `--skip-validation` to seed an id before the group exists. `list` flags allowed-but-deleted groups with `missing` so you notice when a group disappears under you.
+
+Declarative Ansible task — `set` converges to the desired list regardless of prior state:
+
+```yaml
+- name: Stats Collector — pin allowed groups
+  command: >
+    php /var/www/nextcloud/occ stats_collector:groups set
+      {{ statscollector_allowed_groups | join(' ') }}
+  become_user: www-data
+  changed_when: false
+```
+
 ### Ansible role snippet
 
 ```yaml
@@ -299,9 +333,16 @@ curl -H "Authorization: Bearer YOUR_KEY" \
 
 Snapshot retention defaults to 90 days; configurable via `--retention` on `stats_collector:configure` (0 = forever).
 
-## Personal dashboard
+## Two surfaces: admin settings vs personal dashboard
 
-Users in groups added to **Admin settings -> Stats Collector -> Access** see a top-level navigation entry "Stats Collector" inside Nextcloud. The dashboard is read-only, refreshes on the cron schedule, and supports per-user preferences (density, hidden sections, section order, pinned hero metrics, default spotlight metric).
+Stats Collector ships two distinct UIs. Keep them apart when granting access:
+
+| Surface | Path | Who sees it | What it is |
+|---|---|---|---|
+| **Admin settings** | `/settings/admin/stats_collector` | Admins only | Configuration: collectors, API keys, branding, allowed groups, retention. |
+| **Personal dashboard** | `/apps/stats_collector/` | Admins + members of `allowed_groups` | Read-only frontend: KPI cards, charts, sparklines, per-user preferences. |
+
+When you grant a group access through `stats_collector:groups`, the members get a top-level "Stats Collector" entry in the Nextcloud navigation bar. Clicking it lands them on the **personal dashboard** — never on admin settings. They can view metrics and tweak their own layout (density, hidden sections, section order, pinned hero metrics, default spotlight metric), but they cannot change collectors, mint API keys, or touch anything else.
 
 Users without access do not see the navigation icon at all.
 
@@ -310,9 +351,11 @@ Users without access do not see the navigation icon at all.
 | Command | Purpose |
 |---|---|
 | `stats_collector:setup` | Interactive setup wizard |
-| `stats_collector:configure` | Non-interactive: set cron interval, label, retention, etc. |
+| `stats_collector:configure` | Non-interactive: set cron interval, instance label, retention days |
 | `stats_collector:status` | Show current config + enabled collectors + snapshot info |
-| `stats_collector:metrics` | Enable/disable metrics per collector |
+| `stats_collector:metrics` | Enable/disable metrics per collector (`--enable-all`, `--enable=<ids>`, `--disable=<ids>`) |
+| `stats_collector:api-key` | Manage pull API keys (`create`, `list`, `revoke`; `--key=` to bring your own) |
+| `stats_collector:groups` | Manage personal dashboard access (`list`, `add`, `remove`, `set`, `clear`) |
 | `stats_collector:collect` | Manual run (`--preview` to inspect JSON, `--no-store` to skip persistence) |
 | `stats_collector:reset` | Wipe all app config (`--yes` to skip prompt) |
 
