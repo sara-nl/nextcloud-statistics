@@ -59,7 +59,7 @@ class ActivityCollector implements ICollector {
 			],
 			[
 				'id' => 'most_active_users',
-				'name' => 'Most active users',
+				'name' => 'Most active users (7d)',
 				'description' => 'Top 10 users by activity count (7d)',
 				'type' => 'gauge',
 				'method' => 'db',

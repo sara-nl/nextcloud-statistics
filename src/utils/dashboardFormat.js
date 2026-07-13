@@ -63,6 +63,8 @@ const METRIC_NAME_OVERRIDES = {
 	total_forms: 'Forms',
 	total_activities: 'Activity entries',
 	active_sessions: 'Active document sessions',
+	most_active_users: 'Most active users (7d)',
+	activities_by_type: 'Activities by type (30d)',
 }
 
 export function formatMetricName(id) {
