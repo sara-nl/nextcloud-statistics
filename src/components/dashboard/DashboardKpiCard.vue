@@ -240,9 +240,15 @@ export default {
 	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
+	/* Wrap onto at most two lines instead of truncating: metric names like
+	   "Files created (24h)" or "Total messages (7d)" were cut to "Files
+	   create..." / "Total messa...", which read as duplicates in the grid. */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	overflow-wrap: anywhere;
 	flex: 1 1 auto;
 	min-width: 0;
 }

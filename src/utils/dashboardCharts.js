@@ -1,6 +1,14 @@
 import { COLORS } from '../services/utils.js'
 import { formatBytes, isBytesMetric } from './dashboardFormat.js'
 
+// Chart chrome (axis labels, grid, donut labels) uses Nextcloud's own theme
+// variables so it tracks light/dark/custom themes exactly like the rest of the
+// UI. ApexCharts writes these strings straight into SVG fill/stroke attributes,
+// and the browser resolves the var() at paint time.
+const TEXT_MUTED = 'var(--color-text-maxcontrast)'
+const TEXT_MAIN = 'var(--color-main-text)'
+const GRID_LINE = 'var(--color-border)'
+
 export function buildSparkOptions(trend) {
 	const color = trend?.dir === 'down' ? '#e9322d' : (trend?.dir === 'up' ? '#46ba61' : '#0082c9')
 	return {
@@ -56,14 +64,14 @@ export function buildSpotlightOptions(metricId) {
 			type: 'datetime',
 			labels: {
 				datetimeUTC: false,
-				style: { fontSize: '11px', colors: '#888' },
+				style: { fontSize: '11px', colors: TEXT_MUTED },
 			},
 			axisBorder: { show: false },
 			axisTicks: { show: false },
 		},
 		yaxis: {
 			labels: {
-				style: { fontSize: '11px', colors: '#888' },
+				style: { fontSize: '11px', colors: TEXT_MUTED },
 				formatter: (val) => {
 					if (val === null || val === undefined) return ''
 					if (isBytes) return formatBytes(val)
@@ -79,10 +87,10 @@ export function buildSpotlightOptions(metricId) {
 			y: {
 				formatter: (val) => isBytes ? formatBytes(val) : Number(val).toLocaleString(),
 			},
-			theme: 'light',
+			theme: 'dark',
 		},
 		grid: {
-			borderColor: '#eef0f3',
+			borderColor: GRID_LINE,
 			strokeDashArray: 3,
 			xaxis: { lines: { show: false } },
 			yaxis: { lines: { show: true } },
@@ -114,7 +122,7 @@ export function buildDonutOptions(rows, metricId) {
 							show: true,
 							fontSize: '12px',
 							fontWeight: 500,
-							color: '#888',
+							color: TEXT_MUTED,
 							offsetY: -4,
 						},
 						value: {
@@ -122,7 +130,7 @@ export function buildDonutOptions(rows, metricId) {
 							fontSize: '22px',
 							fontWeight: 700,
 							offsetY: 6,
-							color: '#333',
+							color: TEXT_MAIN,
 							formatter: (val) => isBytes ? formatBytes(Number(val)) : Number(val).toLocaleString(),
 						},
 						total: {
@@ -131,7 +139,7 @@ export function buildDonutOptions(rows, metricId) {
 							label: 'Total',
 							fontSize: '12px',
 							fontWeight: 500,
-							color: '#888',
+							color: TEXT_MUTED,
 							formatter: (w) => {
 								const sum = w.globals.seriesTotals.reduce((a, b) => a + b, 0)
 								return isBytes ? formatBytes(sum) : sum.toLocaleString()
@@ -146,19 +154,20 @@ export function buildDonutOptions(rows, metricId) {
 			position: 'right',
 			fontSize: '13px',
 			fontWeight: 500,
+			labels: { colors: TEXT_MAIN },
 			itemMargin: { horizontal: 6, vertical: 4 },
 			markers: { size: 7, shape: 'circle', offsetX: -4 },
 			formatter: (label, opts) => {
 				const v = opts.w.globals.series[opts.seriesIndex]
 				const formatted = isBytes ? formatBytes(v) : Number(v).toLocaleString()
-				return `${label} <span style="color:#888">${formatted}</span>`
+				return `${label} <span style="color:var(--color-text-maxcontrast)">${formatted}</span>`
 			},
 		},
 		tooltip: {
 			y: {
 				formatter: (val) => isBytes ? formatBytes(val) : Number(val).toLocaleString(),
 			},
-			theme: 'light',
+			theme: 'dark',
 		},
 		responsive: [{
 			breakpoint: 600,
