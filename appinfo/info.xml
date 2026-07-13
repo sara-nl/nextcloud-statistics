@@ -5,7 +5,7 @@
 	<name>Stats Collector</name>
 	<summary>Collect Nextcloud statistics for external monitoring systems</summary>
 	<description><![CDATA[A modular Nextcloud app that collects statistics from installed apps via DB queries and OCS APIs. External monitoring systems can pull snapshots through a public REST API authenticated with API keys. Provides an admin dashboard and a per-group personal dashboard.]]></description>
-	<version>2.5.1</version>
+	<version>2.5.2</version>
 	<licence>agpl</licence>
 	<author>Sam Ditmeijer</author>
 	<namespace>StatsCollector</namespace>
