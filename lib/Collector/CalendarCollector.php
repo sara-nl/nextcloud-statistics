@@ -27,7 +27,11 @@ class CalendarCollector implements ICollector {
 	}
 
 	public function getAppId(): string {
-		return 'dav';
+		// The calendar tables live in core dav, but we only collect when the
+		// user-facing Calendar app is enabled: otherwise the dashboard shows
+		// calendar numbers for an instance that has calendaring switched off,
+		// which is confusing. Matches how ContactsCollector keys on 'contacts'.
+		return 'calendar';
 	}
 
 	public function getIcon(): string {
