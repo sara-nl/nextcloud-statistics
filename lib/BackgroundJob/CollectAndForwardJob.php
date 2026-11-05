@@ -9,7 +9,7 @@ use OCA\StatsCollector\Service\CollectionService;
 use OCA\StatsCollector\Service\SnapshotService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -32,12 +32,12 @@ class CollectAndForwardJob extends TimedJob {
 		ITimeFactory $time,
 		private CollectionService $collectionService,
 		private SnapshotService $snapshotService,
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private LoggerInterface $logger,
 	) {
 		parent::__construct($time);
 
-		$interval = $this->config->getAppValue(Application::APP_ID, 'cron_interval', 'hourly');
+		$interval = $this->appConfig->getValueString(Application::APP_ID, 'cron_interval', 'hourly');
 		$this->setInterval(self::INTERVALS[$interval] ?? 3600);
 	}
 
@@ -57,7 +57,7 @@ class CollectAndForwardJob extends TimedJob {
 
 	private function cleanupSnapshots(): void {
 		try {
-			$retention = (int)$this->config->getAppValue(Application::APP_ID, 'snapshot_retention_days', '90');
+			$retention = (int)$this->appConfig->getValueString(Application::APP_ID, 'snapshot_retention_days', '90');
 			if ($retention > 0) {
 				$deleted = $this->snapshotService->cleanupOlderThan($retention);
 				if ($deleted > 0) {

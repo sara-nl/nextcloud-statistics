@@ -4,7 +4,7 @@ A Nextcloud app that collects per-instance statistics (users, files, shares, sys
 
 **Pull-only.** Each Nextcloud install is autonomous: it collects locally, stores snapshots in appdata, and exposes them on request. There is no central instance and no push-forward.
 
-**Supported:** Nextcloud 30-33, PHP 8.1+.
+**Supported:** Nextcloud 33-35, PHP 8.2+.
 
 ## How it works
 
@@ -124,6 +124,8 @@ $OCC stats_collector:api-key revoke --id="key_abc123..."
 ```
 
 Labels must be unique. `create` exits non-zero if the label already exists rather than silently issuing a duplicate — pair it with `revoke --label=...` first if you want to rotate.
+
+A key created or revoked with `occ` takes effect on the pull endpoint within 3 seconds, because Nextcloud caches app config in the web server for that long. The same goes for every other setting changed with `occ`.
 
 ### Choosing metrics
 
@@ -389,7 +391,28 @@ npm run build    # production build
 
 - Frontend: Vue 3 Options API, single-file components, ApexCharts for charts, inline Lucide-style SVG icons (no font icon dependencies).
 - PHP namespace: `OCA\StatsCollector` (PSR-4 mapped to `lib/`).
-- No PHP tests, no composer install needed (Nextcloud's autoloader handles it).
+- The app has no runtime PHP dependencies; Nextcloud's autoloader loads `lib/`. `composer install` is only needed for the dev tools below.
+
+## Tests
+
+```bash
+composer install                  # dev tools: psalm, php-cs-fixer, nextcloud/ocp
+composer lint                     # php -l on every file
+composer cs:check                 # Nextcloud coding standard (composer cs:fix to apply)
+composer psalm                    # static analysis against nextcloud/ocp of the oldest supported Nextcloud
+
+npm ci && npm run build           # optional: lets the end-to-end test also check the page's script
+tests/e2e/run-docker.sh 35        # end-to-end test against Nextcloud 35 in Docker
+```
+
+`tests/e2e/run-docker.sh <tag>` starts the official `nextcloud:<tag>-apache` image, installs the collector apps (Calendar, Contacts, Deck, Talk, Forms, Mail, Office) from the App Store, installs this app and runs `tests/e2e/e2e.sh`. That test uses the app the way its clients do: the OCC commands, the admin API, the personal dashboard (API, page and navigation entry), the pull API with API keys, the background job and `reset`. Every metric of every collector whose app is installed must have a value, and any error in the Nextcloud log, or any warning about this app, fails the run. Needs Docker, curl and python3.
+
+- `DB=mysql` or `DB=pgsql` runs it on MariaDB or PostgreSQL instead of SQLite.
+- `UPGRADE_FROM=v2.5.3` first installs that release, stores settings with it, upgrades to the checkout and checks that everything survived (`tests/e2e/upgrade.sh`).
+- `E2E_APPS="deck spreed"` limits the App Store apps; an app that can't be installed is skipped with a notice.
+- `FORCE_ENABLE=1` enables the app on a Nextcloud newer than `max-version`.
+
+GitHub Actions (`.github/workflows/tests.yml`) runs on pull requests, on pushes to `main`, monthly and manually: lint on PHP 8.2 and 8.5, the coding standard, psalm against the oldest and newest Nextcloud in `info.xml`, the frontend build, and the end-to-end test on Nextcloud 33, 34 and 35 (SQLite), on 35 with MariaDB and PostgreSQL, and as an upgrade from the previous release. The monthly and manual runs also test the newest Nextcloud image (`latest`).
 
 ## Security
 

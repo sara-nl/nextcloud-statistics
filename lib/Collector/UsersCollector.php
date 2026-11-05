@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\StatsCollector\Collector;
 
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use Psr\Log\LoggerInterface;
@@ -119,13 +120,18 @@ class UsersCollector implements ICollector {
 	private function getActiveUsers(int $hours): int {
 		$cutoff = time() - ($hours * 3600);
 		// configvalue is VARCHAR but stores UNIX timestamps as numeric strings.
-		// Use explicit CAST to ensure numeric comparison across all DB backends.
-		$result = $this->db->executeQuery(
-			'SELECT COUNT(*) AS `count` FROM `*PREFIX*preferences`'
-			. ' WHERE `appid` = ? AND `configkey` = ? AND CAST(`configvalue` AS UNSIGNED) >= ?',
-			['login', 'lastLogin', $cutoff]
-		);
-		$row = $result->fetch();
+		// castColumn() casts where the database needs it for a numeric comparison
+		// (PostgreSQL has no CAST AS UNSIGNED).
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'count'))
+			->from('preferences')
+			->where($qb->expr()->eq('appid', $qb->createNamedParameter('login')))
+			->andWhere($qb->expr()->eq('configkey', $qb->createNamedParameter('lastLogin')))
+			->andWhere($qb->expr()->gte(
+				$qb->expr()->castColumn('configvalue', IQueryBuilder::PARAM_INT),
+				$qb->createNamedParameter($cutoff, IQueryBuilder::PARAM_INT),
+			));
+		$row = $qb->executeQuery()->fetch();
 		return (int)($row['count'] ?? 0);
 	}
 

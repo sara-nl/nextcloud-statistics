@@ -6,7 +6,7 @@ namespace OCA\StatsCollector\Command;
 
 use OCA\StatsCollector\AppInfo\Application;
 use OCA\StatsCollector\Collector\CollectorRegistry;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -15,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Metrics extends Command {
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private CollectorRegistry $registry,
 	) {
 		parent::__construct();
@@ -36,7 +36,7 @@ class Metrics extends Command {
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$appId = Application::APP_ID;
-		$enabledJson = $this->config->getAppValue($appId, 'enabled_metrics', '{}');
+		$enabledJson = $this->appConfig->getValueString($appId, 'enabled_metrics', '{}');
 		$enabled = json_decode($enabledJson, true) ?: [];
 
 		// Enable all collectors at once
@@ -45,7 +45,7 @@ class Metrics extends Command {
 				$allMetricIds = array_map(fn ($m) => $m['id'], $collector->getAvailableMetrics());
 				$enabled[$collector->getId()] = $allMetricIds;
 			}
-			$this->config->setAppValue($appId, 'enabled_metrics', json_encode($enabled));
+			$this->appConfig->setValueString($appId, 'enabled_metrics', json_encode($enabled, JSON_THROW_ON_ERROR));
 			$output->writeln('<info>All metrics for all available collectors enabled.</info>');
 			return 0;
 		}
@@ -87,14 +87,14 @@ class Metrics extends Command {
 
 		if ($input->getOption('enable-all')) {
 			$enabled[$collectorId] = $allMetricIds;
-			$this->config->setAppValue($appId, 'enabled_metrics', json_encode($enabled));
-			$output->writeln("<info>Enabled all " . count($allMetricIds) . " metrics for $collectorId.</info>");
+			$this->appConfig->setValueString($appId, 'enabled_metrics', json_encode($enabled, JSON_THROW_ON_ERROR));
+			$output->writeln('<info>Enabled all ' . count($allMetricIds) . " metrics for $collectorId.</info>");
 			return 0;
 		}
 
 		if ($input->getOption('disable-all')) {
 			unset($enabled[$collectorId]);
-			$this->config->setAppValue($appId, 'enabled_metrics', json_encode($enabled));
+			$this->appConfig->setValueString($appId, 'enabled_metrics', json_encode($enabled, JSON_THROW_ON_ERROR));
 			$output->writeln("<info>Disabled all metrics for $collectorId.</info>");
 			return 0;
 		}
@@ -105,15 +105,15 @@ class Metrics extends Command {
 		if ($enableList !== [] || $disableList !== []) {
 			$unknown = array_diff([...$enableList, ...$disableList], $allMetricIds);
 			if ($unknown !== []) {
-				$output->writeln("<error>Unknown metric id(s) for $collectorId: " . implode(', ', $unknown) . "</error>");
+				$output->writeln("<error>Unknown metric id(s) for $collectorId: " . implode(', ', $unknown) . '</error>');
 				$output->writeln('Run: <comment>occ stats_collector:metrics ' . $collectorId . ' --list</comment>');
 				return 1;
 			}
 
-			$current = $enabled[$collectorId] ?? [];
+			$current = (array)($enabled[$collectorId] ?? []);
 			$next = array_values(array_unique(array_diff([...$current, ...$enableList], $disableList)));
 			$enabled[$collectorId] = $next;
-			$this->config->setAppValue($appId, 'enabled_metrics', json_encode($enabled));
+			$this->appConfig->setValueString($appId, 'enabled_metrics', json_encode($enabled, JSON_THROW_ON_ERROR));
 
 			$summary = [];
 			if ($enableList !== []) {
@@ -122,7 +122,7 @@ class Metrics extends Command {
 			if ($disableList !== []) {
 				$summary[] = 'disabled ' . count($disableList) . ' (' . implode(', ', $disableList) . ')';
 			}
-			$output->writeln("<info>$collectorId: " . implode('; ', $summary) . ". Now " . count($next) . "/" . count($allMetricIds) . " enabled.</info>");
+			$output->writeln("<info>$collectorId: " . implode('; ', $summary) . '. Now ' . count($next) . '/' . count($allMetricIds) . ' enabled.</info>');
 			return 0;
 		}
 

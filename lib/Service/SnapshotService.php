@@ -7,7 +7,7 @@ namespace OCA\StatsCollector\Service;
 use OCA\StatsCollector\AppInfo\Application;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\Security\ICrypto;
 use Psr\Log\LoggerInterface;
 
@@ -20,7 +20,7 @@ class SnapshotService {
 
 	public function __construct(
 		private IAppData $appData,
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private ICrypto $crypto,
 		private LoggerInterface $logger,
 	) {
@@ -29,10 +29,10 @@ class SnapshotService {
 	// --- API Key Management ---
 
 	/**
-	 * @return array<array{id: string, key_prefix: string, label: string, created_at: string}>
+	 * @return array<array{id: string, key_encrypted: string, key_prefix: string, label: string, created_at: string}>
 	 */
 	public function getApiKeys(): array {
-		$json = $this->config->getAppValue(Application::APP_ID, 'api_keys', '[]');
+		$json = $this->appConfig->getValueString(Application::APP_ID, 'api_keys', '[]');
 		$keys = json_decode($json, true);
 		return is_array($keys) ? $keys : [];
 	}
@@ -92,10 +92,10 @@ class SnapshotService {
 	}
 
 	private function saveApiKeys(array $keys): void {
-		$this->config->setAppValue(
+		$this->appConfig->setValueString(
 			Application::APP_ID,
 			'api_keys',
-			json_encode($keys, JSON_UNESCAPED_SLASHES)
+			json_encode($keys, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)
 		);
 	}
 
@@ -115,7 +115,7 @@ class SnapshotService {
 		$folder = $this->getOrCreateFolder(self::SNAPSHOTS_FOLDER);
 		$filename = 'snapshot_' . $date->format('Y-m-d_H-i-s') . '.json';
 
-		$folder->newFile($filename, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		$folder->newFile($filename, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 	}
 
 	/**

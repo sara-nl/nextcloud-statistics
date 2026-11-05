@@ -42,7 +42,7 @@ class CollectorRegistry {
 		return array_values(array_filter(
 			$this->collectors,
 			fn (ICollector $c) => $c->getAppId() === 'core'
-				|| $this->appManager->isInstalled($c->getAppId())
+				|| $this->appManager->isEnabledForAnyone($c->getAppId())
 		));
 	}
 

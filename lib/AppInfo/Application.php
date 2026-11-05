@@ -9,7 +9,9 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
-use OCP\IConfig;
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\INavigationManager;
 use OCP\IURLGenerator;
@@ -37,10 +39,10 @@ class Application extends App implements IBootstrap {
 			INavigationManager $navigationManager,
 			IUserSession $userSession,
 			IGroupManager $groupManager,
-			IConfig $config,
+			IAppConfig $appConfig,
 			IURLGenerator $urlGenerator,
 		): void {
-			if (!$this->userHasAccess($userSession, $groupManager, $config)) {
+			if (!$this->userHasAccess($userSession, $groupManager, $appConfig)) {
 				return;
 			}
 			$navigationManager->add(fn () => [
@@ -57,7 +59,7 @@ class Application extends App implements IBootstrap {
 	private function userHasAccess(
 		IUserSession $userSession,
 		IGroupManager $groupManager,
-		IConfig $config,
+		IAppConfig $appConfig,
 	): bool {
 		$user = $userSession->getUser();
 		if ($user === null) {
@@ -67,7 +69,7 @@ class Application extends App implements IBootstrap {
 		if ($groupManager->isAdmin($user->getUID())) {
 			return true;
 		}
-		$allowedJson = $config->getAppValue(self::APP_ID, 'allowed_groups', '[]');
+		$allowedJson = $appConfig->getValueString(self::APP_ID, 'allowed_groups', '[]');
 		$allowed = json_decode($allowedJson, true);
 		if (!is_array($allowed) || empty($allowed)) {
 			return false;
@@ -81,8 +83,9 @@ class Application extends App implements IBootstrap {
 	}
 }
 
-class CSPListener implements \OCP\EventDispatcher\IEventListener {
-	public function handle(\OCP\EventDispatcher\Event $event): void {
+/** @template-implements IEventListener<AddContentSecurityPolicyEvent> */
+class CSPListener implements IEventListener {
+	public function handle(Event $event): void {
 		if (!($event instanceof AddContentSecurityPolicyEvent)) {
 			return;
 		}

@@ -3,6 +3,11 @@ js/
 .DS_Store
 .cache/
 
+# PHP dev tooling (composer install)
+/vendor/
+/vendor-bin/*/vendor/
+.php-cs-fixer.cache
+
 # Build artefacts
 *.log
 

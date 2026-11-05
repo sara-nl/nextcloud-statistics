@@ -108,7 +108,7 @@ class FilesCollector implements ICollector {
 			'SELECT COUNT(*) AS `count` FROM `*PREFIX*filecache` `fc`'
 			. ' INNER JOIN `*PREFIX*storages` `s` ON `fc`.`storage` = `s`.`numeric_id`'
 			. ' WHERE `s`.`id` LIKE ? AND `fc`.`mimetype` != ?',
-			['home::%', $this->getDirMimeId()]
+			['home::%', (string)$this->getDirMimeId()]
 		);
 		$row = $result->fetch();
 		return (int)($row['count'] ?? 0);
@@ -122,7 +122,7 @@ class FilesCollector implements ICollector {
 			'SELECT SUM(`fc`.`size`) AS `total` FROM `*PREFIX*filecache` `fc`'
 			. ' INNER JOIN `*PREFIX*storages` `s` ON `fc`.`storage` = `s`.`numeric_id`'
 			. ' WHERE `s`.`id` LIKE ? AND `fc`.`mimetype` != ? AND `fc`.`size` > 0',
-			['home::%', $this->getDirMimeId()]
+			['home::%', (string)$this->getDirMimeId()]
 		);
 		$row = $result->fetch();
 		return (int)($row['total'] ?? 0);
@@ -141,7 +141,7 @@ class FilesCollector implements ICollector {
 			. '  WHERE `s`.`id` LIKE ? AND `fc`.`mimetype` != ? AND `fc`.`size` > 0'
 			. '  GROUP BY `s`.`numeric_id`'
 			. ') `per_user`',
-			['home::%', $this->getDirMimeId()]
+			['home::%', (string)$this->getDirMimeId()]
 		);
 		$row = $result->fetch();
 		return (int)($row['avg_size'] ?? 0);
@@ -156,7 +156,7 @@ class FilesCollector implements ICollector {
 			'SELECT COUNT(*) AS `count` FROM `*PREFIX*filecache` `fc`'
 			. ' INNER JOIN `*PREFIX*storages` `s` ON `fc`.`storage` = `s`.`numeric_id`'
 			. ' WHERE `s`.`id` LIKE ? AND `fc`.`mimetype` != ? AND `fc`.`storage_mtime` >= ?',
-			['home::%', $this->getDirMimeId(), $cutoff]
+			['home::%', (string)$this->getDirMimeId(), (string)$cutoff]
 		);
 		$row = $result->fetch();
 		return (int)($row['count'] ?? 0);
