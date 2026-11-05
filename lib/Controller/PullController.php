@@ -13,6 +13,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -30,6 +31,7 @@ class PullController extends Controller {
 		IRequest $request,
 		private SnapshotService $snapshotService,
 		private IConfig $config,
+		private IAppConfig $appConfig,
 		private ISession $session,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -83,8 +85,8 @@ class PullController extends Controller {
 		$snapshots = $this->snapshotService->listSnapshots($from, $to, $limit, $includePayload);
 
 		return new JSONResponse([
-			'instance_id' => $this->config->getSystemValue('instanceid', ''),
-			'instance_label' => $this->config->getAppValue(Application::APP_ID, 'instance_label', ''),
+			'instance_id' => $this->config->getSystemValueString('instanceid', ''),
+			'instance_label' => $this->appConfig->getValueString(Application::APP_ID, 'instance_label', ''),
 			'count' => count($snapshots),
 			'snapshots' => $snapshots,
 		]);
@@ -170,7 +172,7 @@ class PullController extends Controller {
 	}
 
 	private function authenticate(): ?JSONResponse {
-		$authHeader = (string)$this->request->getHeader('Authorization');
+		$authHeader = $this->request->getHeader('Authorization');
 		if (!str_starts_with($authHeader, 'Bearer ')) {
 			$response = new JSONResponse(['error' => 'Missing Bearer token'], Http::STATUS_UNAUTHORIZED);
 			$response->throttle(['action' => self::BFP_ACTION]);

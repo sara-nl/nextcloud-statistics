@@ -142,7 +142,7 @@ class SystemCollector implements ICollector {
 
 	private function getInstalledApps(): array {
 		$apps = [];
-		foreach ($this->appManager->getInstalledApps() as $appId) {
+		foreach ($this->appManager->getEnabledApps() as $appId) {
 			if ($this->appManager->isEnabledForUser($appId)) {
 				$apps[$appId] = $this->appManager->getAppVersion($appId);
 			}

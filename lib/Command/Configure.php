@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\StatsCollector\Command;
 
 use OCA\StatsCollector\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Configure extends Command {
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 	) {
 		parent::__construct();
 	}
@@ -40,7 +40,7 @@ class Configure extends Command {
 		foreach ($map as $option => $configKey) {
 			$value = $input->getOption($option);
 			if ($value !== null) {
-				$this->config->setAppValue($appId, $configKey, $value);
+				$this->appConfig->setValueString($appId, $configKey, (string)$value);
 				$output->writeln("<info>Set $configKey</info>");
 				$changed++;
 			}

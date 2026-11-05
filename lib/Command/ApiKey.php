@@ -71,9 +71,9 @@ class ApiKey extends Command {
 			return 0;
 		}
 
-		$output->writeln("<info>API key created.</info>");
-		$output->writeln("Label : " . $record['label']);
-		$output->writeln("Id    : " . $record['id']);
+		$output->writeln('<info>API key created.</info>');
+		$output->writeln('Label : ' . $record['label']);
+		$output->writeln('Id    : ' . $record['id']);
 		$output->writeln("Key   : <comment>$plain</comment>");
 		$output->writeln('');
 		if ($providedKey === '') {

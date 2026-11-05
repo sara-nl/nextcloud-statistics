@@ -7,14 +7,14 @@ namespace OCA\StatsCollector\Command;
 use OCA\StatsCollector\AppInfo\Application;
 use OCA\StatsCollector\Collector\CollectorRegistry;
 use OCA\StatsCollector\Service\SnapshotService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Status extends Command {
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private CollectorRegistry $registry,
 		private SnapshotService $snapshotService,
 	) {
@@ -33,11 +33,11 @@ class Status extends Command {
 		$output->writeln('<info>== Stats Collector Configuration ==</info>');
 		$output->writeln('');
 
-		$interval = $this->config->getAppValue($appId, 'cron_interval', 'hourly');
-		$label = $this->config->getAppValue($appId, 'instance_label', '');
-		$retention = $this->config->getAppValue($appId, 'snapshot_retention_days', '90');
+		$interval = $this->appConfig->getValueString($appId, 'cron_interval', 'hourly');
+		$label = $this->appConfig->getValueString($appId, 'instance_label', '');
+		$retention = $this->appConfig->getValueString($appId, 'snapshot_retention_days', '90');
 		$output->writeln("Cron interval:    $interval");
-		$output->writeln("Instance label:   " . ($label ?: '<auto>'));
+		$output->writeln('Instance label:   ' . ($label ?: '<auto>'));
 		$output->writeln('Retention:        ' . ($retention === '0' ? 'keep forever' : "$retention days"));
 
 		// Snapshots
@@ -54,7 +54,7 @@ class Status extends Command {
 		$output->writeln('<info>== Collectors ==</info>');
 		$output->writeln('');
 
-		$enabledJson = $this->config->getAppValue($appId, 'enabled_metrics', '{}');
+		$enabledJson = $this->appConfig->getValueString($appId, 'enabled_metrics', '{}');
 		$enabled = json_decode($enabledJson, true) ?: [];
 
 		foreach ($this->registry->getAvailable() as $collector) {

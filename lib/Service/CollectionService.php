@@ -6,6 +6,7 @@ namespace OCA\StatsCollector\Service;
 
 use OCA\StatsCollector\AppInfo\Application;
 use OCA\StatsCollector\Collector\CollectorRegistry;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
@@ -13,6 +14,7 @@ class CollectionService {
 	public function __construct(
 		private CollectorRegistry $registry,
 		private IConfig $config,
+		private IAppConfig $appConfig,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -44,7 +46,7 @@ class CollectionService {
 
 		$payload = [
 			'instance_id' => $this->config->getSystemValueString('instanceid', ''),
-			'instance_label' => $this->config->getAppValue(Application::APP_ID, 'instance_label', ''),
+			'instance_label' => $this->appConfig->getValueString(Application::APP_ID, 'instance_label', ''),
 			'instance_url' => $this->config->getSystemValueString('overwrite.cli.url', ''),
 			'nextcloud_version' => $this->config->getSystemValueString('version', ''),
 			'timestamp' => (new \DateTimeImmutable())->format('c'),
@@ -52,10 +54,11 @@ class CollectionService {
 		];
 
 		// Cache the latest snapshot for the dashboard
-		$this->config->setAppValue(
+		$this->appConfig->setValueString(
 			Application::APP_ID,
 			'last_snapshot',
-			json_encode($payload, JSON_UNESCAPED_SLASHES)
+			json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+			lazy: true,
 		);
 
 		return $payload;
@@ -65,7 +68,7 @@ class CollectionService {
 	 * Get the cached snapshot (from the last collection run).
 	 */
 	public function getLastSnapshot(): ?array {
-		$json = $this->config->getAppValue(Application::APP_ID, 'last_snapshot', '');
+		$json = $this->appConfig->getValueString(Application::APP_ID, 'last_snapshot', '', lazy: true);
 		if (empty($json)) {
 			return null;
 		}
@@ -79,7 +82,7 @@ class CollectionService {
 	 * @return array<string, string[]> collector_id => [metric_ids]
 	 */
 	public function getEnabledMetrics(): array {
-		$json = $this->config->getAppValue(Application::APP_ID, 'enabled_metrics', '{}');
+		$json = $this->appConfig->getValueString(Application::APP_ID, 'enabled_metrics', '{}');
 		$decoded = json_decode($json, true);
 		return is_array($decoded) ? $decoded : [];
 	}
@@ -90,10 +93,10 @@ class CollectionService {
 	 * @param array<string, string[]> $metrics collector_id => [metric_ids]
 	 */
 	public function setEnabledMetrics(array $metrics): void {
-		$this->config->setAppValue(
+		$this->appConfig->setValueString(
 			Application::APP_ID,
 			'enabled_metrics',
-			json_encode($metrics)
+			json_encode($metrics, JSON_THROW_ON_ERROR)
 		);
 	}
 }

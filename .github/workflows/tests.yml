@@ -1,0 +1,142 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Monthly run against the newest Nextcloud release, to notice early when a new version breaks the app
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-interaction --no-progress
+      - run: composer cs:check
+
+  lint:
+    name: lint (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest PHP of the oldest supported Nextcloud (33) and the newest PHP of the newest (35)
+        php: ['8.2', '8.5']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer lint
+
+  psalm:
+    name: psalm (${{ matrix.bound }} Nextcloud version)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest and the newest Nextcloud that min-version and max-version in info.xml allow
+        bound: [min, max]
+    steps:
+      - uses: actions/checkout@v7
+      - id: versions
+        uses: nextcloud-libraries/nextcloud-version-matrix@v1.3.3
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-interaction --no-progress
+      - name: Install nextcloud/ocp of that version
+        env:
+          BRANCH: ${{ matrix.bound == 'min' && steps.versions.outputs.branches-min || steps.versions.outputs.branches-max }}
+        run: composer require --dev "nextcloud/ocp:dev-$BRANCH" --ignore-platform-reqs --with-dependencies --no-interaction --no-progress
+      - run: composer psalm -- --no-progress --output-format=github
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: js
+          path: js/
+          retention-days: 1
+
+  e2e:
+    name: e2e (Nextcloud ${{ matrix.nextcloud }}, ${{ matrix.db }})
+    needs: frontend
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported Nextcloud and the two newest releases, on SQLite. The newest
+        # also on MariaDB and PostgreSQL, because the collectors run their own SQL.
+        nextcloud: ['33', '34', '35']
+        db: [sqlite]
+        include:
+          - nextcloud: '35'
+            db: mysql
+          - nextcloud: '35'
+            db: pgsql
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: js
+          path: js/
+      - run: tests/e2e/run-docker.sh ${{ matrix.nextcloud }}
+        env:
+          DB: ${{ matrix.db }}
+
+  e2e-upgrade:
+    name: e2e (upgrade from the previous release)
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The tags, to find the previous release
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: js
+          path: js/
+      - name: Find the previous release
+        id: previous
+        run: echo "tag=$(git describe --tags --abbrev=0 HEAD^)" >> "$GITHUB_OUTPUT"
+      # A Nextcloud version that both the previous release and this one support
+      - run: tests/e2e/run-docker.sh 34
+        env:
+          UPGRADE_FROM: ${{ steps.previous.outputs.tag }}
+
+  e2e-latest:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: js
+          path: js/
+      - run: tests/e2e/run-docker.sh latest
+        env:
+          # The newest release can be newer than max-version in info.xml
+          FORCE_ENABLE: '1'

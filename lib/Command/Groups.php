@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\StatsCollector\Command;
 
 use OCA\StatsCollector\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -21,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Groups extends Command {
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private IGroupManager $groupManager,
 	) {
 		parent::__construct();
@@ -121,13 +121,13 @@ class Groups extends Command {
 	}
 
 	private function getAllowed(): array {
-		$json = $this->config->getAppValue(Application::APP_ID, 'allowed_groups', '[]');
+		$json = $this->appConfig->getValueString(Application::APP_ID, 'allowed_groups', '[]');
 		$decoded = json_decode($json, true);
 		return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
 	}
 
 	private function save(array $groups): void {
-		$this->config->setAppValue(Application::APP_ID, 'allowed_groups', json_encode(array_values($groups)));
+		$this->appConfig->setValueString(Application::APP_ID, 'allowed_groups', json_encode(array_values($groups), JSON_THROW_ON_ERROR));
 	}
 
 	private function fail(OutputInterface $output, string $msg): int {

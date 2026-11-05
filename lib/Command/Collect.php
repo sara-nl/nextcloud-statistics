@@ -41,7 +41,7 @@ class Collect extends Command {
 		$output->writeln("Collected data from $collectorCount collector(s).");
 
 		if ($input->getOption('preview')) {
-			$output->writeln(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+			$output->writeln(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 			return 0;
 		}
 

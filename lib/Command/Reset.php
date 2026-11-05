@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\StatsCollector\Command;
 
 use OCA\StatsCollector\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -28,7 +28,7 @@ class Reset extends Command {
 	];
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 	) {
 		parent::__construct();
 	}
@@ -58,9 +58,8 @@ class Reset extends Command {
 
 		$removed = 0;
 		foreach (self::ALL_KEYS as $key) {
-			$current = $this->config->getAppValue($appId, $key, '');
-			if ($current !== '') {
-				$this->config->deleteAppValue($appId, $key);
+			if ($this->appConfig->hasKey($appId, $key, null)) {
+				$this->appConfig->deleteKey($appId, $key);
 				$removed++;
 			}
 		}

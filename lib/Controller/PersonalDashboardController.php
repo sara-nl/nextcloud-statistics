@@ -13,7 +13,8 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
-use OCP\IConfig;
+use OCP\Config\IUserConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -25,7 +26,8 @@ class PersonalDashboardController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IAppConfig $appConfig,
+		private IUserConfig $userConfig,
 		private IGroupManager $groupManager,
 		private IUserSession $userSession,
 		private IInitialState $initialState,
@@ -41,7 +43,7 @@ class PersonalDashboardController extends Controller {
 	#[NoCSRFRequired]
 	public function index(): TemplateResponse {
 		$this->initialState->provideInitialState('allowed', $this->isAllowed());
-		$this->initialState->provideInitialState('instance_label', $this->config->getAppValue(Application::APP_ID, 'instance_label', ''));
+		$this->initialState->provideInitialState('instance_label', $this->appConfig->getValueString(Application::APP_ID, 'instance_label', ''));
 		$this->initialState->provideInitialState('preferences', $this->loadPreferences());
 
 		Util::addScript(Application::APP_ID, 'stats_collector-personal-settings');
@@ -60,7 +62,7 @@ class PersonalDashboardController extends Controller {
 			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
 		}
 
-		$snapshotJson = $this->config->getAppValue(Application::APP_ID, 'last_snapshot', '');
+		$snapshotJson = $this->appConfig->getValueString(Application::APP_ID, 'last_snapshot', '', lazy: true);
 		if ($snapshotJson === '') {
 			return new JSONResponse(['empty' => true]);
 		}
@@ -172,13 +174,13 @@ class PersonalDashboardController extends Controller {
 
 		// Empty / "use defaults" payload clears the row entirely.
 		if ($this->isEmptyPreferences($clean)) {
-			$this->config->deleteUserValue($user->getUID(), Application::APP_ID, self::PREF_KEY);
+			$this->userConfig->deleteUserConfig($user->getUID(), Application::APP_ID, self::PREF_KEY);
 		} else {
-			$this->config->setUserValue(
+			$this->userConfig->setValueString(
 				$user->getUID(),
 				Application::APP_ID,
 				self::PREF_KEY,
-				json_encode($clean, JSON_UNESCAPED_SLASHES),
+				json_encode($clean, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
 			);
 		}
 
@@ -200,7 +202,7 @@ class PersonalDashboardController extends Controller {
 		if ($user === null) {
 			return $this->defaultPreferences();
 		}
-		$json = $this->config->getUserValue($user->getUID(), Application::APP_ID, self::PREF_KEY, '');
+		$json = $this->userConfig->getValueString($user->getUID(), Application::APP_ID, self::PREF_KEY, '');
 		if ($json === '') {
 			return $this->defaultPreferences();
 		}
@@ -276,7 +278,7 @@ class PersonalDashboardController extends Controller {
 			return true;
 		}
 		$allowedGroups = json_decode(
-			$this->config->getAppValue(Application::APP_ID, 'allowed_groups', '[]'),
+			$this->appConfig->getValueString(Application::APP_ID, 'allowed_groups', '[]'),
 			true
 		);
 		if (!is_array($allowedGroups) || empty($allowedGroups)) {

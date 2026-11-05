@@ -8,7 +8,7 @@ use OCA\StatsCollector\AppInfo\Application;
 use OCA\StatsCollector\Collector\CollectorRegistry;
 use OCA\StatsCollector\Service\CollectionService;
 use OCA\StatsCollector\Service\SnapshotService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,7 +19,7 @@ use Symfony\Component\Console\Question\Question;
 
 class Setup extends Command {
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private CollectorRegistry $registry,
 		private CollectionService $collectionService,
 		private SnapshotService $snapshotService,
@@ -46,36 +46,36 @@ class Setup extends Command {
 
 		// Step 1: Instance label
 		$output->writeln('<info>Step 1/5: Instance Identity</info>');
-		$currentLabel = $this->config->getAppValue($appId, 'instance_label', '');
+		$currentLabel = $this->appConfig->getValueString($appId, 'instance_label', '');
 		$q = new Question('Instance label' . ($currentLabel ? " [$currentLabel]" : '') . ': ', $currentLabel);
 		$label = $helper->ask($input, $output, $q);
 		if ($label) {
-			$this->config->setAppValue($appId, 'instance_label', $label);
+			$this->appConfig->setValueString($appId, 'instance_label', $label);
 		}
 		$output->writeln('');
 
 		// Step 2: Cron interval
 		$output->writeln('<info>Step 2/5: Collection Interval</info>');
-		$currentInterval = $this->config->getAppValue($appId, 'cron_interval', 'hourly');
+		$currentInterval = $this->appConfig->getValueString($appId, 'cron_interval', 'hourly');
 		$q = new ChoiceQuestion(
 			"How often should stats be collected? [$currentInterval]",
 			['5min' => 'Every 5 minutes', '15min' => 'Every 15 minutes', 'hourly' => 'Hourly', 'daily' => 'Daily', 'weekly' => 'Weekly'],
 			$currentInterval,
 		);
 		$interval = $helper->ask($input, $output, $q);
-		$this->config->setAppValue($appId, 'cron_interval', $interval);
+		$this->appConfig->setValueString($appId, 'cron_interval', $interval);
 		$output->writeln('');
 
 		// Step 3: Retention
 		$output->writeln('<info>Step 3/5: Snapshot Retention</info>');
-		$currentRetention = $this->config->getAppValue($appId, 'snapshot_retention_days', '90');
+		$currentRetention = $this->appConfig->getValueString($appId, 'snapshot_retention_days', '90');
 		$q = new ChoiceQuestion(
 			"How long should snapshots be kept? [$currentRetention days]",
 			['30' => '30 days', '60' => '60 days', '90' => '90 days', '180' => '180 days', '365' => '1 year', '0' => 'Keep forever'],
 			$currentRetention,
 		);
 		$retention = $helper->ask($input, $output, $q);
-		$this->config->setAppValue($appId, 'snapshot_retention_days', $retention);
+		$this->appConfig->setValueString($appId, 'snapshot_retention_days', $retention);
 		$output->writeln('');
 
 		// Step 4: Metrics
@@ -90,7 +90,7 @@ class Setup extends Command {
 				$allMetricIds = array_map(fn ($m) => $m['id'], $collector->getAvailableMetrics());
 				$enabled[$collector->getId()] = $allMetricIds;
 			}
-			$this->config->setAppValue($appId, 'enabled_metrics', json_encode($enabled));
+			$this->appConfig->setValueString($appId, 'enabled_metrics', json_encode($enabled, JSON_THROW_ON_ERROR));
 			$output->writeln('<info>All metrics enabled.</info>');
 		} else {
 			$output->writeln('Skipped. Use <comment>occ stats_collector:metrics</comment> to configure individually.');

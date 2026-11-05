@@ -9,14 +9,14 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\Http\Client\IClientService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IRequest;
 
 class SettingsController extends Controller {
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IAppConfig $appConfig,
 		private IClientService $clientService,
 		private IGroupManager $groupManager,
 	) {
@@ -33,20 +33,20 @@ class SettingsController extends Controller {
 			'id' => $g->getGID(),
 			'displayName' => $g->getDisplayName(),
 		], $groups);
-		return new JSONResponse(array_values($results));
+		return new JSONResponse($results);
 	}
 
 	public function get(): JSONResponse {
 		$appId = Application::APP_ID;
 
 		return new JSONResponse([
-			'cron_interval' => $this->config->getAppValue($appId, 'cron_interval', 'hourly'),
-			'instance_label' => $this->config->getAppValue($appId, 'instance_label', ''),
-			'snapshot_retention_days' => $this->config->getAppValue($appId, 'snapshot_retention_days', '90'),
-			'chart_logo_url' => $this->config->getAppValue($appId, 'chart_logo_url', ''),
-			'chart_font' => $this->config->getAppValue($appId, 'chart_font', ''),
-			'chart_colors' => json_decode($this->config->getAppValue($appId, 'chart_colors', '[]'), true) ?: [],
-			'allowed_groups' => json_decode($this->config->getAppValue($appId, 'allowed_groups', '[]'), true) ?: [],
+			'cron_interval' => $this->appConfig->getValueString($appId, 'cron_interval', 'hourly'),
+			'instance_label' => $this->appConfig->getValueString($appId, 'instance_label', ''),
+			'snapshot_retention_days' => $this->appConfig->getValueString($appId, 'snapshot_retention_days', '90'),
+			'chart_logo_url' => $this->appConfig->getValueString($appId, 'chart_logo_url', ''),
+			'chart_font' => $this->appConfig->getValueString($appId, 'chart_font', ''),
+			'chart_colors' => json_decode($this->appConfig->getValueString($appId, 'chart_colors', '[]'), true) ?: [],
+			'allowed_groups' => json_decode($this->appConfig->getValueString($appId, 'allowed_groups', '[]'), true) ?: [],
 		]);
 	}
 
@@ -71,23 +71,25 @@ class SettingsController extends Controller {
 				if (isset($allowlists[$field]) && !in_array($value, $allowlists[$field], true)) {
 					continue;
 				}
-				$this->config->setAppValue($appId, $field, (string)$value);
+				$this->appConfig->setValueString($appId, $field, (string)$value);
 			}
 		}
 
 		// chart_colors is stored as JSON array
 		$chartColors = $this->request->getParam('chart_colors');
 		if ($chartColors !== null) {
-			$this->config->setAppValue($appId, 'chart_colors', json_encode(
-				is_array($chartColors) ? $chartColors : []
+			$this->appConfig->setValueString($appId, 'chart_colors', json_encode(
+				is_array($chartColors) ? $chartColors : [],
+				JSON_THROW_ON_ERROR,
 			));
 		}
 
 		// allowed_groups is stored as JSON array of group IDs
 		$allowedGroups = $this->request->getParam('allowed_groups');
 		if ($allowedGroups !== null) {
-			$this->config->setAppValue($appId, 'allowed_groups', json_encode(
-				is_array($allowedGroups) ? $allowedGroups : []
+			$this->appConfig->setValueString($appId, 'allowed_groups', json_encode(
+				is_array($allowedGroups) ? $allowedGroups : [],
+				JSON_THROW_ON_ERROR,
 			));
 		}
 
@@ -98,7 +100,7 @@ class SettingsController extends Controller {
 	 * Proxy the configured chart logo to avoid CORS issues.
 	 */
 	public function proxyLogo(): DataDownloadResponse {
-		$url = $this->config->getAppValue(Application::APP_ID, 'chart_logo_url', '');
+		$url = $this->appConfig->getValueString(Application::APP_ID, 'chart_logo_url', '');
 		if ($url === '') {
 			return new DataDownloadResponse('', 'logo.png', 'image/png');
 		}
@@ -107,9 +109,12 @@ class SettingsController extends Controller {
 			$client = $this->clientService->newClient();
 			$response = $client->get($url, ['timeout' => 10]);
 			$body = $response->getBody();
+			if (is_resource($body)) {
+				$body = stream_get_contents($body);
+			}
 			$contentType = $response->getHeader('Content-Type') ?: 'image/png';
 
-			return new DataDownloadResponse($body, 'logo', $contentType);
+			return new DataDownloadResponse(is_string($body) ? $body : '', 'logo', $contentType);
 		} catch (\Exception $e) {
 			return new DataDownloadResponse('', 'logo.png', 'image/png');
 		}
